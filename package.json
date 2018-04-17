@@ -1,0 +1,10 @@
+{
+  "name": "BankeraToken",
+  "version": "0.0.1",
+  "description": "Bankera Token",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "decimal.js": "^9.0.1"
+  },
+  "dependencies": {}
+}
