@@ -1,8 +1,8 @@
 # Bankera ERC223 Contract
 
-## Gerneral Description
+## General Description
 
-Contract should have an ethereum address to deposit reward balance. Once reward is set for round the claim amount is proportionally divided among token holders. For example Jack, John and Brown have 1, 2 and 2 tokens respectively. If 100 ether are rewarded, ethers can by claimed by Jack, John and Brown proportionally: 20, 40, 40 ether.
+Contract has to have an Ethereum address in order to deposit a reward. Once the reward is set up for the weekly round, the claim amount will be proportionally divided among round token holders. For example, Jack, John and Bob have 1, 2 and 2 tokens respectively. If 100 ethers are placed in the round as a reward, Jack, John and Bob can claim 20, 40, 40 ethers respectively through the smart contract.
 
 ## Testing
 Preparation:
@@ -20,34 +20,31 @@ start run.sh
 
 ### Permissions
 
-Creator (contract owner) can do all admin functions.
-Create hardcoded admin (address) list to allow them to use certain functions. Each different function for each different admin:
-* distribute tokens to ETH addresses (issue admin)
-* set reward for round (reward admin)
-* adjust round length (round admin)
+The creator (contract owner) can perform all the admin functions, such as creating  admin (address) list to allow admins to use certain functions. Different functions are assigned for each different admin:
+* distribute tokens to ETH addresses (Issue admin); 
+* set a reward for each weekly round (Reward admin);
+* adjust the round length (Round admin).
 
 ### Balances
 
-Token issue method to issue specified count of Tokens to provided address by Contract owner, issue admin. Not more than total supply.
-Token owner can transfer owning Tokens to different address.
-Not issued tokens are not owned by anyone and are not included into reward calculation. (but can be issued any time until total supply limit)
+Token issue method to determine the specific amount of Tokens to be issued to the address provided by the Contract owner or issue admin.
+The total Token supply cannot be exceeded. Token holders can transfer their own Tokens to different addresses. Not issued tokens are not owned by anyone and are not included into the reward calculation (but can be issued at any time until the total lifetime supply is reached).
 On token issue: ``issuedTokens[currentRound] = (issuedTokens[last record] ?? 0) + issueAmount``
-Token balances are being held in data structure: ``balances = address[] => round[] => token balance``
-Round is increased each week (check for increase on issue, transfer, reward).
-On issue, transfer:
-* if round ID is not increased - increase to the up to date currentRound  number. Check for gaps and fill issuedTokens  with latest value in the same array for missing rounds.
-* Check for existing address Token balance. Getting last record of ``balances[msg.sender]`` to check existing ``tokenBalance``
-* Funding address. ``balances[msg.sender][currentRound] = currentBalance + tokenChange``
-* Withdrawing from address. ``balances[msg.sender][currentRound] = currentBalance - tokenChange``
+The Token balance is being held i the following data structure: ``balances = address[] => round[] => token balance``
+The Round is increased weekly (check for an increase on Token issue, then transfer and reward). 
+On Token issue, transfer:
+* If the round ID has not been increased - increase to the most recent currentRound number. Check for gaps and fill issuedTokens with the latest value in the same array of missing Rounds.
+* Check for existing Token balance in the address. Get the last record of ``balances[msg.sender]`` to check existing ``tokenBalance``
+* Funding address: ``balances[msg.sender][currentRound] = currentBalance + tokenChange``
+* Withdrawing from address: ``balances[msg.sender][currentRound] = currentBalance - tokenChange``
 
 ### Reward
 
 Reward for each round: ``rewardList = round[] => reward ``
-Last claimed round of each address ``claims = address[] => round``
-On ETH receive, ETH is stored to Contract balance
-Owner, Reward admin can call ``setReward`` for round method (one time for each round) and reward amount is set for provided round. ``rewardList[round] = reward``
-Token Owner can claim reward in ETH. Calling ``claimReward(destinationAddress)``.
-Token Owner can claim reward in ETH. Calling ``claimReward(destinationAddress, untilRound)`` while specifying round until which reward should be claimed. ``untilRound`` should be: ``lastClaimRound < untilRound <= currentRound``. ``untilRound`` is not included.
+Latest claimed round of each address:: ``claims = address[] => round``
+When received the ETH is stored in the Contract balance. The Owner (Reward admin) can call ``setReward`` for the Round method (one time for each Round) and a Reward amount is set for the provided round: ``rewardList[round] = reward``
+The Token holder is entitled to a reward in ETH. Calling ``claimReward(destinationAddress)`` The token holder will claim the reward in ETH. 
+Calling ``claimReward(destinationAddress, untilRound)`` while specifying the Round until which the reward should be claimed. ``untilRound`` should be: ``lastClaimRound < untilRound <= currentRound``. ``untilRound`` is not included in the claim.
 
 ``lastClaimRound = claims[msg.sender] ?? 0``
 ```
@@ -56,19 +53,16 @@ reward = SUM(having claimRound from lastClaimRound + 1 to currentRound - 1) {
 }
 ```
 
-After claim. ``claims[msg.sender] = currentRound - 1``
-Claimed ETH are sent to ``destinationAddress``
+After claiming, the claimed ETH amount is sent to the ``destinationAddress`` and claims updated: ``claims[msg.sender] = currentRound - 1``
 
 ### Rounds
 
-Have ``currentRoundStartBlock``
-Rounds are calculated and adjusted to correlate to weekly timing.
+Having ``currentRoundStartBlock``, the Rounds are calculated and adjusted to correlate to the  weekly timing.
 ``blocksPerRound  = 6000 x 7 = 42000`` (at the time of writing)
-Function ``setBlocksPerRound(blocksPerRound)``to adjust ``blocksPerRound`` by Contract owner, Round admin
-If performing token issue, transfer, claim, ``currentRound`` is updated based on ``currentBlock``, ``blocksPerRound`` and ``currentRoundStartBlock`` if needed.
+Function ``setBlocksPerRound(blocksPerRound)``to adjust ``blocksPerRound`` by the Contract owner or Round admin.
+If performing token issue, transfer or claim, the ``currentRound`` is updated based on ``currentBlock``, ``blocksPerRound`` and ``currentRoundStartBlock``, if needed.
 
 ``currentRound = currentRound + (currentBlock - currentRoundStartBlock) / blocksPerRound``
 
-When updating ``currentRound``, ``currentRoundStartBlock`` is updated accordingly
-``currentRoundStartBlock = currentRoundStartBlock + blocksPerRound * (currentRound - currentRoundBeforeUpdate)``
-having ``currentRoundStartBlock <= currentBlock``
+When updating the ``currentRound``, ``currentRoundStartBlock`` is updated accordingly.
+``currentRoundStartBlock = currentRoundStartBlock + blocksPerRound * (currentRound - currentRoundBeforeUpdate)``, if having ``currentRoundStartBlock <= currentBlock``.
