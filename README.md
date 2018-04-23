@@ -42,18 +42,18 @@ On Token issue, transfer:
 
 Reward for each round: ``rewardList = round[] => reward ``
 Latest claimed round of each address: ``claims = address[] => round``
-When received, the ETH is stored in the Contract balance. The Owner (Reward admin) can call ``setReward`` for the Round method (one time for each Round) and a Reward amount is set for the provided round: ``rewardList[round] = reward``
+When received, the ETH is stored in the Contract balance. The Owner (Reward admin) can call ``setReward`` for the Round method (one time for each Round) and a Reward amount is set for the provided round: ``rewardList[round] = reward``. Also round ``rewardRate`` is updated: ``rewardRate[round] = reward / issuedTokens[round]``.
 The Token holder is entitled to a reward in ETH. Calling ``claimReward(destinationAddress)``, the token holder will claim the reward in ETH. 
 When calling ``claimReward(destinationAddress, untilRound)`` the Round until which the reward should be claimed has to be specified. ``untilRound`` should be: ``lastClaimRound < untilRound <= currentRound``. ``untilRound`` is not included in the claim.
 
 ``lastClaimRound = claims[msg.sender] ?? 0``
 ```
-reward = SUM(having claimRound from lastClaimRound + 1 to currentRound - 1) {
-   return (balances[msg.seneder][claimRound] / issuedTokens[claimRound]) * rewardList[claimRound]
+reward = SUM(having claimRound from lastClaimRound to currentRound - 1) {
+   return balances[msg.seneder][claimRound] * rewardRate[claimRound]
 }
 ```
 
-After claiming, the claimed ETH amount is sent to the ``destinationAddress`` and claims are updated: ``claims[msg.sender] = currentRound - 1``
+After claiming, the claimed ETH amount is sent to the ``destinationAddress`` and claims are updated: ``claims[msg.sender] = currentRound``
 
 ### Rounds
 
