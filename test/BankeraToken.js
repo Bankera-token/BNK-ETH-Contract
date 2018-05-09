@@ -529,4 +529,54 @@ contract('BankeraToken mixed tests', function (accounts) {
             })
     });
 
+    it("8. " + "createRounds function accessibility for all users", function() {
+        var bankeraTokenInstance;
+        var contractOwner;
+        var customBlocksPerRound = 1;
+
+        return BankeraToken.new(customBlocksPerRound, startingRoundNumber).then(function (instance) {
+            bankeraTokenInstance = instance;
+            contractOwner = accounts[0];
+
+            return Promise.all([
+                bankeraTokenInstance.changeRewardManager(accounts[1], {from: contractOwner}),
+                bankeraTokenInstance.changeIssueManager(accounts[2], {from: contractOwner}),
+                bankeraTokenInstance.changeRoundManager(accounts[3], {from: contractOwner}),
+                bankeraTokenInstance.createRounds(2, {from: accounts[6]})
+            ]).then(function(values) {
+                return Promise.all([
+                    bankeraTokenInstance.createRounds(2, {from: contractOwner}),
+                    bankeraTokenInstance.createRounds(2, {from: accounts[1]}),
+                    bankeraTokenInstance.createRounds(2, {from: accounts[2]}),
+                    bankeraTokenInstance.createRounds(2, {from: accounts[3]})
+                ])
+            }).catch(function(tx) {
+                console.log("tx ", tx);
+                assert.fail("Unexpected error");
+            })
+        })
+    });
+
+    it("9. " + "transferFrom function revert all transactions", function() {
+        var bankeraTokenInstance;
+        var contractOwner;
+
+        return BankeraToken.new(blocksPerRound, startingRoundNumber).then(function (instance) {
+            bankeraTokenInstance = instance;
+            contractOwner = accounts[0];
+
+            return Promise.all([
+                bankeraTokenInstance.issueTokens(accounts[1], BigNumber('321540001').toFixed(0), {from: contractOwner})
+            ]).then(function(values) {
+                return Promise.all([
+                    bankeraTokenInstance.transferFrom(accounts[1], accounts[2], BigNumber('321540001').toFixed(0))
+                ])
+            }).then(function(values) {
+                assert.fail("Transaction should be reverted");
+            }).catch(function(tx) {
+                assertJump(tx);
+            })
+        })
+    });
+
 });

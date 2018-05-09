@@ -324,7 +324,7 @@ contract('Paused contract functionality', function (accounts) {
     });
 
     it("10.24 " + "Paused - calculateClaimableReward", function () {
-        return contractInstance.calculateClaimableReward({from: contributorAddress1})
+        return contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
             .then(function (result) {
                 assert.isOk(result);
             })
@@ -335,7 +335,7 @@ contract('Paused contract functionality', function (accounts) {
     });
 
     it("10.25 " + "Paused - calculateClaimableRewardTillRound", function () {
-        return contractInstance.calculateClaimableRewardTillRound(2, {from: contributorAddress1})
+        return contractInstance.calculateClaimableRewardTillRound(contributorAddress1, 2, {from: contributorAddress1})
             .then(function (result) {
                 assert.isOk(result);
             })

@@ -34,7 +34,7 @@ contract ERC223 is ERC20 {
 
 contract BankeraToken is ERC223, SafeMath {
 
-	string public constant name = "Bankera";     // Set the name for display purposes
+	string public constant name = "Banker Token";     // Set the name for display purposes
 	string public constant symbol = "BNK";      // Set the symbol for display purposes
 	uint8 public constant decimals = 8;         // Amount of decimals for display purposes
 	uint256 private issued = 0;   				// tokens count issued to addresses
@@ -51,6 +51,7 @@ contract BankeraToken is ERC223, SafeMath {
 	mapping (uint64 => Reward) public reward;	//key - round, value - reward in round
 	mapping (address => AddressBalanceInfoStructure) public accountBalances;	//key - address, value - address balance info
 	mapping (uint64 => uint256) public issuedTokensInRound;	//key - round, value - issued tokens
+	mapping (address => mapping (address => uint256)) internal allowed;
 
 	uint256 public blocksPerRound; // blocks per round
 	uint256 public lastBlockNumberInRound;
@@ -64,7 +65,7 @@ contract BankeraToken is ERC223, SafeMath {
 
 	struct AddressBalanceInfoStructure {
 		uint256 addressBalance;
-		mapping (uint => uint256) roundBalanceMap; //key - round number, value - total token amount in round
+		mapping (uint256 => uint256) roundBalanceMap; //key - round number, value - total token amount in round
 		mapping (uint64 => bool) wasModifiedInRoundMap; //key - round number, value - is modified in round
 		uint64[] mapKeys;	//round balance map keys
 		uint64 claimedRewardTillRound;
@@ -225,16 +226,6 @@ contract BankeraToken is ERC223, SafeMath {
 		require(paused);
 		_;
 	}
-	/**
-	 *
-	 * Fix for the ERC20 short address attack
-	 *
-	 * http://vessenes.com/the-erc20-short-address-attack-explained/
-	 */
-	modifier onlyPayloadSize(uint _size) {
-		assert(msg.data.length >= _size + 4);
-		_;
-	}
 
 	function getRoundBalance(address _address, uint256 _round) public view returns (uint256) {
 		return accountBalances[_address].roundBalanceMap[_round];
@@ -265,14 +256,15 @@ contract BankeraToken is ERC223, SafeMath {
 
 	/* Send coins from owner to other address */
 	/*Override*/
-	function transfer(address _to, uint256 _value) public onlyPayloadSize(2 * 32) notSelf(_to) whenNotPaused returns (bool success){
+	function transfer(address _to, uint256 _value) public notSelf(_to) whenNotPaused returns (bool success){
+		require(_to != address(0));
 		//added due to backwards compatibility reasons
 		bytes memory empty;
 		if(isContract(_to)) {
-			return transferToContract(_to, _value, empty);
+			return transferToContract(msg.sender, _to, _value, empty);
 		}
 		else {
-			return transferToAddress(_to, _value, empty);
+			return transferToAddress(msg.sender, _to, _value, empty);
 		}
 	}
 
@@ -286,35 +278,111 @@ contract BankeraToken is ERC223, SafeMath {
 		return totalTokens;
 	}
 
+	/**
+	 * @dev Transfer tokens from one address to another
+	 * @param _from address The address which you want to send tokens from
+	 * @param _to address The address which you want to transfer to
+	 * @param _value uint256 the amount of tokens to be transferred
+	 */
 	/*Override*/
-	function transferFrom(address /*_from*/, address /*_to*/, uint256 /*_value*/) public whenNotPaused returns (bool success){
-		return false;
+	function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused returns (bool) {
+		require(_to != address(0));
+		require(_value <= allowed[_from][msg.sender]);
+
+		//added due to backwards compatibility reasons
+		bytes memory empty;
+		if(isContract(_to)) {
+			require(transferToContract(_from, _to, _value, empty));
+		}
+		else {
+			require(transferToAddress(_from, _to, _value, empty));
+		}
+		allowed[_from][msg.sender] = safeSub(allowed[_from][msg.sender], _value);
+		return true;
 	}
 
+	/**
+	 * @dev Approve the passed address to spend the specified amount of tokens on behalf of msg.sender.
+	 *
+	 * Beware that changing an allowance with this method brings the risk that someone may use both the old
+	 * and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this
+	 * race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards:
+	 * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+	 * @param _spender The address which will spend the funds.
+	 * @param _value The amount of tokens to be spent.
+	 */
 	/*Override*/
-	function approve(address /*_spender*/, uint256 /*_value*/) public whenNotPaused returns (bool success){
-		return false;
+	function approve(address _spender, uint256 _value) public whenNotPaused returns (bool) {
+		allowed[msg.sender][_spender] = _value;
+		Approval(msg.sender, _spender, _value);
+		return true;
 	}
 
+	/**
+	  * @dev Function to check the amount of tokens that an owner allowed to a spender.
+	  * @param _owner address The address which owns the funds.
+	  * @param _spender address The address which will spend the funds.
+	  * @return A uint256 specifying the amount of tokens still available for the spender.
+	  */
 	/*Override*/
-	function allowance(address /*_owner*/, address /*_spender*/) public constant whenNotPaused returns (uint256){
-		return 0;
+	function allowance(address _owner, address _spender) public view whenNotPaused returns (uint256) {
+		return allowed[_owner][_spender];
+	}
+
+	/**
+	 * @dev Increase the amount of tokens that an owner allowed to a spender.
+	 *
+	 * approve should be called when allowed[_spender] == 0. To increment
+	 * allowed value is better to use this function to avoid 2 calls (and wait until
+	 * the first transaction is mined)
+	 * From MonolithDAO Token.sol
+	 * @param _spender The address which will spend the funds.
+	 * @param _addedValue The amount of tokens to increase the allowance by.
+	 */
+
+	function increaseApproval(address _spender, uint256 _addedValue) public returns (bool) {
+		allowed[msg.sender][_spender] = safeAdd(allowed[msg.sender][_spender], _addedValue);
+		Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+		return true;
+	}
+
+	/**
+	 * @dev Decrease the amount of tokens that an owner allowed to a spender.
+	 *
+	 * approve should be called when allowed[_spender] == 0. To decrement
+	 * allowed value is better to use this function to avoid 2 calls (and wait until
+	 * the first transaction is mined)
+	 * From MonolithDAO Token.sol
+	 * @param _spender The address which will spend the funds.
+	 * @param _subtractedValue The amount of tokens to decrease the allowance by.
+	 */
+	function decreaseApproval(address _spender, uint256 _subtractedValue) public returns (bool) {
+		uint256 oldValue = allowed[msg.sender][_spender];
+		if (_subtractedValue > oldValue) {
+			allowed[msg.sender][_spender] = 0;
+		} else {
+			allowed[msg.sender][_spender] = safeSub(oldValue, _subtractedValue);
+		}
+		Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+		return true;
 	}
 
 	// Function that is called when a user or another contract wants to transfer funds .
 	/*Override*/
 	function transfer(address _to, uint256 _value, bytes _data) public whenNotPaused notSelf(_to) returns (bool success){
+		require(_to != address(0));
 		if(isContract(_to)) {
-			return transferToContract(_to, _value, _data);
+			return transferToContract(msg.sender, _to, _value, _data);
 		}
 		else {
-			return transferToAddress(_to, _value, _data);
+			return transferToAddress(msg.sender, _to, _value, _data);
 		}
 	}
 
 	// Function that is called when a user or another contract wants to transfer funds.
 	/*Override*/
 	function transfer(address _to, uint256 _value, bytes _data, string _custom_fallback) public whenNotPaused notSelf(_to) returns (bool success){
+		require(_to != address(0));
 		if(isContract(_to)) {
 			if(accountBalances[msg.sender].addressBalance < _value){		// Check if the sender has enough
 				revert();
@@ -328,11 +396,14 @@ contract BankeraToken is ERC223, SafeMath {
 			addToAddressBalancesInfo(_to, _value);	// Add the same to the recipient
 
 			assert(_to.call.value(0)(bytes4(keccak256(_custom_fallback)), msg.sender, _value, _data));
+
+			/* Notify anyone listening that this transfer took place */
 			Transfer(msg.sender, _to, _value, _data);
+			Transfer(msg.sender, _to, _value);
 			return true;
 		}
 		else {
-			return transferToAddress(_to, _value, _data);
+			return transferToAddress(msg.sender, _to, _value, _data);
 		}
 	}
 
@@ -342,12 +413,8 @@ contract BankeraToken is ERC223, SafeMath {
 	}
 
 	function claimRewardTillRound(uint64 _claimTillRound) public whenNotPaused returns (uint256 rewardAmountInWei) {
-		if(msg.sender == contractOwner){ //don't allow contract owner to claim reward
-			revert();
-		}
-
 		isNewRound();
-		rewardAmountInWei = calculateClaimableRewardTillRound(_claimTillRound);
+		rewardAmountInWei = calculateClaimableRewardTillRound(msg.sender, _claimTillRound);
 		accountBalances[msg.sender].claimedRewardTillRound = _claimTillRound;
 
 		if (rewardAmountInWei > 0){
@@ -358,23 +425,21 @@ contract BankeraToken is ERC223, SafeMath {
 		return rewardAmountInWei;
 	}
 
-	function calculateClaimableReward() public constant returns (uint256 rewardAmountInWei) {
-		if (currentRound < 1) { return rewardAmountInWei; }
-		return calculateClaimableRewardTillRound(currentRound);
+	function calculateClaimableReward(address _address) public constant returns (uint256 rewardAmountInWei) {
+		return calculateClaimableRewardTillRound(_address, currentRound);
 	}
 
-	function calculateClaimableRewardTillRound(uint64 _claimTillRound) public constant returns (uint256) {
+	function calculateClaimableRewardTillRound(address _address, uint64 _claimTillRound) public constant returns (uint256) {
 		uint256 rewardAmountInWei = 0;
-		AddressBalanceInfoStructure storage accountBalanceInfo = accountBalances[msg.sender];
-		if(accountBalanceInfo.mapKeys.length == 0){
-			return rewardAmountInWei;
-		}
+
+		if (_claimTillRound > currentRound) { revert(); }
+		if (currentRound < 1) { revert(); }
+
+		AddressBalanceInfoStructure storage accountBalanceInfo = accountBalances[_address];
+		if(accountBalanceInfo.mapKeys.length == 0){	revert(); }
 
 		uint64 userLastClaimedRewardRound = accountBalanceInfo.claimedRewardTillRound;
-
-		if (_claimTillRound > currentRound) { return rewardAmountInWei; }
-		if (_claimTillRound < userLastClaimedRewardRound) { return rewardAmountInWei; }
-		if (currentRound < 1) { return rewardAmountInWei; }
+		if (_claimTillRound < userLastClaimedRewardRound) { revert(); }
 
 		for (uint64 workRound = userLastClaimedRewardRound; workRound < _claimTillRound; workRound++) {
 
@@ -398,8 +463,8 @@ contract BankeraToken is ERC223, SafeMath {
 		return rewardAmountInWei;
 	}
 
-	function createRounds(uint256 maxRounds) public onlyRoundManager {
-		uint blocksAfterLastRound = safeSub(block.number, lastBlockNumberInRound);	//current block number - last round block number = blocks after last round
+	function createRounds(uint256 maxRounds) public {
+		uint256 blocksAfterLastRound = safeSub(block.number, lastBlockNumberInRound);	//current block number - last round block number = blocks after last round
 
 		if(blocksAfterLastRound >= blocksPerRound){	// need to increase reward round if blocks after last round is greater or equal blocks per round
 
@@ -417,7 +482,7 @@ contract BankeraToken is ERC223, SafeMath {
 	// Private functions
 	//assemble the given address bytecode. If bytecode exists then the _address is a contract.
 	function isContract(address _address) private view returns (bool is_contract) {
-		uint length;
+		uint256 length;
 		assembly {
 		//retrieve the size of the code on target address, this needs assembly
 			length := extcodesize(_address)
@@ -426,7 +491,7 @@ contract BankeraToken is ERC223, SafeMath {
 	}
 
 	function isNewRound() private {
-		uint blocksAfterLastRound = safeSub(block.number, lastBlockNumberInRound);	//current block number - last round block number = blocks after last round
+		uint256 blocksAfterLastRound = safeSub(block.number, lastBlockNumberInRound);	//current block number - last round block number = blocks after last round
 		if(blocksAfterLastRound >= blocksPerRound){	// need to increase reward round if blocks after last round is greater or equal blocks per round
 			updateRoundsInformation(blocksAfterLastRound);
 		}
@@ -464,7 +529,9 @@ contract BankeraToken is ERC223, SafeMath {
 			ContractReceiver receiverContract = ContractReceiver(_receiver);
 			receiverContract.tokenFallback(msg.sender, _tokenAmount, empty);
 		}
+		/* Notify anyone listening that this transfer took place */
 		Transfer(msg.sender, _receiver, _tokenAmount, empty);
+		Transfer(msg.sender, _receiver, _tokenAmount);
 	}
 
 	function addToAddressBalancesInfo(address _receiver, uint256 _tokenAmount) private {
@@ -492,8 +559,8 @@ contract BankeraToken is ERC223, SafeMath {
 		accountBalance.roundBalanceMap[currentRound] = accountBalance.addressBalance;
 	}
 	//function that is called when transaction target is an address
-	function transferToAddress(address _to, uint256 _value, bytes _data) private returns (bool success) {
-		if(accountBalances[msg.sender].addressBalance < _value){		// Check if the sender has enough
+	function transferToAddress(address _from, address _to, uint256 _value, bytes _data) private returns (bool success) {
+		if(accountBalances[_from].addressBalance < _value){		// Check if the sender has enough
 			revert();
 		}
 		if(safeAdd(accountBalances[_to].addressBalance, _value) < accountBalances[_to].addressBalance){		// Check for overflows
@@ -501,17 +568,18 @@ contract BankeraToken is ERC223, SafeMath {
 		}
 
 		isNewRound();
-		subFromAddressBalancesInfo(msg.sender, _value);	// Subtract from the sender
+		subFromAddressBalancesInfo(_from, _value);	// Subtract from the sender
 		addToAddressBalancesInfo(_to, _value);	// Add the same to the recipient
 
 		/* Notify anyone listening that this transfer took place */
-		Transfer(msg.sender, _to, _value, _data);
+		Transfer(_from, _to, _value, _data);
+		Transfer(_from, _to, _value);
 		return true;
 	}
 
 	//function that is called when transaction target is a contract
-	function transferToContract(address _to, uint256 _value, bytes _data) private returns (bool success) {
-		if(accountBalances[msg.sender].addressBalance < _value){		// Check if the sender has enough
+	function transferToContract(address _from, address _to, uint256 _value, bytes _data) private returns (bool success) {
+		if(accountBalances[_from].addressBalance < _value){		// Check if the sender has enough
 			revert();
 		}
 		if(safeAdd(accountBalances[_to].addressBalance, _value) < accountBalances[_to].addressBalance){		// Check for overflows
@@ -519,12 +587,15 @@ contract BankeraToken is ERC223, SafeMath {
 		}
 
 		isNewRound();
-		subFromAddressBalancesInfo(msg.sender, _value);	// Subtract from the sender
+		subFromAddressBalancesInfo(_from, _value);	// Subtract from the sender
 		addToAddressBalancesInfo(_to, _value);	// Add the same to the recipient
 
 		ContractReceiver receiver = ContractReceiver(_to);
-		receiver.tokenFallback(msg.sender, _value, _data);
-		Transfer(msg.sender, _to, _value, _data);
+		receiver.tokenFallback(_from, _value, _data);
+
+		/* Notify anyone listening that this transfer took place */
+		Transfer(_from, _to, _value, _data);
+		Transfer(_from, _to, _value);
 		return true;
 	}
 }

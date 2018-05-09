@@ -43,8 +43,8 @@ contract('Claim reward tests', function (accounts) {
 
                 return contractInstance.claimReward({from: contributorAddress1})
             })
-            .then(function(tx) {
-                assert.isOk(tx, "should be transaction");
+            .catch(function(error) {
+                assertJump(error);
                 assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract ETH Balance is wrong");
                 return contractHelper.mineNextBlock(17*60);
             })
@@ -53,8 +53,8 @@ contract('Claim reward tests', function (accounts) {
 
                 return contractInstance.claimReward({from: contributorAddress1})    // 0 round
             })
-            .then(function(tx) {
-                assert.isOk(tx, "should be transaction");
+            .catch(function(error) {
+                assertJump(error);
                 assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract ETH Balance is wrong");
 
                 return contractHelper.mineNextBlock(12*60);
@@ -64,13 +64,12 @@ contract('Claim reward tests', function (accounts) {
 
                 return contractInstance.claimReward({from: contributorAddress1})    // 0 round
             })
-            .then(function(tx) {
-                assert.isOk(tx, "should be transaction");
-                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract ETH Balance is wrong");
+            .then(function(values) {
+                assert.isOk(false, 'Unexpected exception');
+                console.log("Incorrect working flow");
             })
-            .catch(function(tx) {
-                console.log("tx sendTransaction7 ", tx);
-                assert.isOk(false);
+            .catch(function(error) {
+                assertJump(error);
             })
     });
 
@@ -140,7 +139,7 @@ contract('Claim reward tests', function (accounts) {
                     contractInstance.reward(0),
                     contractInstance.reward(1),
                     contractInstance.reward(2),
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: accounts[10]})
                 ])
             }).then(function (values) {
 
@@ -228,7 +227,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1})
                 ])
             })
@@ -306,7 +305,7 @@ contract('Claim reward tests', function (accounts) {
                 assert.equal(values[0], 0, "Incorrect contract owner BNK balance");
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -401,7 +400,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.accountBalances(contributorAddress1)
                 ])
@@ -477,7 +476,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: accounts[11]}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.accountBalances(contributorAddress1)
                 ])
@@ -550,7 +549,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.accountBalances(contributorAddress1)
                 ])
@@ -624,7 +623,7 @@ contract('Claim reward tests', function (accounts) {
                 assert.equal(values[0].toString(), 0, "should be transaction");
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -652,7 +651,7 @@ contract('Claim reward tests', function (accounts) {
                 assert.equal(value[2].toString(), claimedReward.toString(), "user marked claimed reward should be same as claimed");
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -743,7 +742,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -856,7 +855,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -893,7 +892,7 @@ contract('Claim reward tests', function (accounts) {
                 assert.equal(value[0].toString(), 0, "BNK balance after all BNK transfer should be 0");
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1})
                 ])
             })
@@ -971,7 +970,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -1007,14 +1006,14 @@ contract('Claim reward tests', function (accounts) {
                 assert.equal(values[0][0].toString(), 0, "BNK balance after all BNK transfer should be 0");
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function (values) {
                 assert.equal(0, values[0], "calculated reward after Rewards withdraw should 0");
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.balanceOf(contributorAddress1)
                 ])
@@ -1044,7 +1043,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -1125,7 +1124,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -1170,7 +1169,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function (values) {
@@ -1258,7 +1257,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function (values) {
@@ -1311,7 +1310,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function (values) {
@@ -1389,7 +1388,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function (values) {
@@ -1490,7 +1489,7 @@ contract('Claim reward tests', function (accounts) {
 
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function (values) {
@@ -1597,7 +1596,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -1705,7 +1704,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1})
                 ])
             })
@@ -1755,7 +1754,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1})
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1})
                 ])
             })
             .then(function(values) {
@@ -1852,7 +1851,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.accountBalances(contributorAddress1)
                 ])
@@ -1920,7 +1919,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.accountBalances(contributorAddress1)
                 ])
@@ -1952,7 +1951,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.accountBalances(contributorAddress1)
                 ])
@@ -1981,7 +1980,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: contributorAddress1}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.accountBalances(contributorAddress1)
                 ])
@@ -2010,7 +2009,7 @@ contract('Claim reward tests', function (accounts) {
                 contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
 
                 return Promise.all([
-                    contractInstance.calculateClaimableReward({from: contributorAddress1}),
+                    contractInstance.calculateClaimableReward(contributorAddress1, {from: accounts[12]}),
                     contractInstance.claimReward({from: contributorAddress1}),
                     contractInstance.accountBalances(contributorAddress1)
                 ])
@@ -2029,4 +2028,347 @@ contract('Claim reward tests', function (accounts) {
             })
     });
 
+    it("15.20.1 " + "Claim reward till round (claimTillRound > currentRound)", function () {
+        var contractInstance;
+        var contractOwnerAddress;
+        var contractAddress;
+        var contributorAddress1 = accounts[8];
+        var contributorAddress2 = accounts[7];
+        var contributorAddress1sBNKAmount = BigNumber('5000000');
+        var contributorAddress2sBNKAmount = BigNumber('5000000');
+        var customBlocksPerRound = 12;
+        var customStartingRoundNumber = 10;
+
+        return BankeraToken.new(customBlocksPerRound, customStartingRoundNumber)
+            .then(function (instance) {
+                contractInstance = instance;
+                contractOwnerAddress = accounts[0];
+                contractAddress = instance.address;
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract Balance should be zero");
+                return Promise.all([
+                    contractInstance.totalSupply()
+                ])
+            })
+            .then(function (values) {
+                assert.equal(values[0].toFixed(0), totalSupplyInsBNK.toFixed(0), "Incorrect totalSupply");
+
+                return Promise.all([
+                    //buy tokens for user
+                    contractInstance.issueTokens(contributorAddress1, contributorAddress1sBNKAmount.toFixed(0), {from: contractOwnerAddress}),
+                    contractInstance.issueTokens(contributorAddress2, contributorAddress2sBNKAmount.toFixed(0), {from: contractOwnerAddress})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+                return contractHelper.mineNextBlock(25*60);
+            })
+            .then(function (value) {
+
+                return contractHelper.mineNewBlocks(BigNumber(blocksPerRound).plus(BigNumber(1)));// finish 10 - start 11
+            })
+            .then(function (value) {
+
+                return contractInstance.createRounds(2);
+            })
+            .then(function(tx) {
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract ETH Balance is wrong");
+
+                return Promise.all([
+                    contractInstance.setReward(10, web3.toWei(1, "ether")),
+                    contractInstance.sendTransaction({value: web3.toWei(1, "ether")})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+
+                return Promise.all([
+                    contractInstance.claimRewardTillRound(20, {from: contributorAddress1})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(false, 'Unexpected exception');
+                console.log("Incorrect working flow");
+            })
+            .catch(function(error) {
+                assertJump(error);
+            })
+    });
+
+    it("15.20.2 " + "Claim reward till round (currentRound < 1)", function () {
+        var contractInstance;
+        var contractOwnerAddress;
+        var contractAddress;
+        var contributorAddress1 = accounts[8];
+        var contributorAddress2 = accounts[7];
+        var contributorAddress1sBNKAmount = BigNumber('5000000');
+        var contributorAddress2sBNKAmount = BigNumber('5000000');
+        var customBlocksPerRound = 12;
+
+        return BankeraToken.new(customBlocksPerRound, startingRoundNumber)
+            .then(function (instance) {
+                contractInstance = instance;
+                contractOwnerAddress = accounts[0];
+                contractAddress = instance.address;
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract Balance should be zero");
+                return Promise.all([
+                    contractInstance.totalSupply()
+                ])
+            })
+            .then(function (values) {
+                assert.equal(values[0].toFixed(0), totalSupplyInsBNK.toFixed(0), "Incorrect totalSupply");
+
+                return Promise.all([
+                    //buy tokens for user
+                    contractInstance.issueTokens(contributorAddress1, contributorAddress1sBNKAmount.toFixed(0), {from: contractOwnerAddress}),
+                    contractInstance.issueTokens(contributorAddress2, contributorAddress2sBNKAmount.toFixed(0), {from: contractOwnerAddress})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+                return contractHelper.mineNextBlock(25*60);
+            })
+            .then(function (value) {
+
+                return contractInstance.createRounds(2);
+            })
+            .then(function(tx) {
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract ETH Balance is wrong");
+
+                return Promise.all([
+                    contractInstance.setReward(10, web3.toWei(1, "ether")),
+                    contractInstance.sendTransaction({value: web3.toWei(1, "ether")})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+
+                return Promise.all([
+                    contractInstance.claimRewardTillRound(20, {from: contributorAddress1})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(false, 'Unexpected exception');
+                console.log("Incorrect working flow");
+            })
+            .catch(function(error) {
+                assertJump(error);
+            })
+    });
+
+    it("15.20.3 " + "Claim reward till round (user don't have balance)", function () {
+        var contractInstance;
+        var contractOwnerAddress;
+        var contractAddress;
+        var contributorAddress1 = accounts[8];
+        var contributorAddress2 = accounts[7];
+        var contributorAddress1sBNKAmount = BigNumber('5000000');
+        var contributorAddress2sBNKAmount = BigNumber('5000000');
+        var customBlocksPerRound = 12;
+        var customStartingRoundNumber = 10;
+
+        return BankeraToken.new(customBlocksPerRound, customStartingRoundNumber)
+            .then(function (instance) {
+                contractInstance = instance;
+                contractOwnerAddress = accounts[0];
+                contractAddress = instance.address;
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract Balance should be zero");
+                return Promise.all([
+                    contractInstance.totalSupply()
+                ])
+            })
+            .then(function (values) {
+                assert.equal(values[0].toFixed(0), totalSupplyInsBNK.toFixed(0), "Incorrect totalSupply");
+
+                return Promise.all([
+                    //buy tokens for user
+                    contractInstance.issueTokens(contributorAddress1, contributorAddress1sBNKAmount.toFixed(0), {from: contractOwnerAddress}),
+                    contractInstance.issueTokens(contributorAddress2, contributorAddress2sBNKAmount.toFixed(0), {from: contractOwnerAddress})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+                return contractHelper.mineNextBlock(25*60);
+            })
+            .then(function (value) {
+
+                return contractHelper.mineNewBlocks(BigNumber(blocksPerRound).plus(BigNumber(1)));// finish 10 - start 11
+            })
+            .then(function (value) {
+
+                return contractInstance.createRounds(2);
+            })
+            .then(function(tx) {
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract ETH Balance is wrong");
+
+                return Promise.all([
+                    contractInstance.setReward(10, web3.toWei(1, "ether")),
+                    contractInstance.sendTransaction({value: web3.toWei(1, "ether")})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+
+                return Promise.all([
+                    contractInstance.claimRewardTillRound(20, {from: accounts[12]})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(false, 'Unexpected exception');
+                console.log("Incorrect working flow");
+            })
+            .catch(function(error) {
+                assertJump(error);
+            })
+    });
+
+    it("15.20.4 " + "Claim reward till round (claimTillRound < userLastClaimedRewardRound)", function () {
+        var contractInstance;
+        var contractOwnerAddress;
+        var contractAddress;
+        var contributorAddress1 = accounts[8];
+        var contributorAddress2 = accounts[7];
+        var contributorAddress1sBNKAmount = BigNumber('5000000');
+        var contributorAddress2sBNKAmount = BigNumber('5000000');
+        var contributorAmountBeforeWithdraw;
+        var customBlocksPerRound = 12;
+        var customStartingRoundNumber = 10;
+
+        return BankeraToken.new(customBlocksPerRound, customStartingRoundNumber)
+            .then(function (instance) {
+                contractInstance = instance;
+                contractOwnerAddress = accounts[0];
+                contractAddress = instance.address;
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract Balance should be zero");
+                return Promise.all([
+                    contractInstance.totalSupply()
+                ])
+            })
+            .then(function (values) {
+                assert.equal(values[0].toFixed(0), totalSupplyInsBNK.toFixed(0), "Incorrect totalSupply");
+
+                return Promise.all([
+                    //buy tokens for user
+                    contractInstance.issueTokens(contributorAddress1, contributorAddress1sBNKAmount.toFixed(0), {from: contractOwnerAddress}),
+                    contractInstance.issueTokens(contributorAddress2, contributorAddress2sBNKAmount.toFixed(0), {from: contractOwnerAddress})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+                return contractHelper.mineNextBlock(25*60);
+            })
+            .then(function (value) {
+
+                return contractHelper.mineNewBlocks(BigNumber(blocksPerRound).plus(BigNumber(1)));// finish 10 - start 11
+            })
+            .then(function (value) {
+
+                return contractInstance.createRounds(2);
+            })
+            .then(function(tx) {
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract ETH Balance is wrong");
+
+                return Promise.all([
+                    contractInstance.setReward(10, web3.toWei(1, "ether")),
+                    contractInstance.sendTransaction({value: web3.toWei(1, "ether")})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+
+                contributorAmountBeforeWithdraw = BigNumber(web3.eth.getBalance(contributorAddress1).toString());
+
+                return Promise.all([
+                    contractInstance.claimRewardTillRound(11, {from: contributorAddress1}),
+                    contractInstance.accountBalances(contributorAddress1)
+                ])
+            })
+            .then(function(values) {
+                assert.equal(11, values[1][1], "Incorrect user claimedRewardTillRound value");
+            })
+            .then(function(values) {
+
+                return Promise.all([
+                    contractInstance.claimRewardTillRound(8, {from: contributorAddress2})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(false, 'Unexpected exception');
+                console.log("Incorrect working flow");
+            })
+            .catch(function(error) {
+                assertJump(error);
+            })
+    });
+
+    it("15.21.1 " + "Claim reward till round (contract owner)", function () {
+        var contractInstance;
+        var contractOwnerAddress;
+        var contractAddress;
+        var contributorAddresssBNKAmount = BigNumber('5000000');
+        var customBlocksPerRound = 12;
+        var customStartingRoundNumber = 10;
+
+        return BankeraToken.new(customBlocksPerRound, customStartingRoundNumber)
+            .then(function (instance) {
+                contractInstance = instance;
+                contractOwnerAddress = accounts[0];
+                contractAddress = instance.address;
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract Balance should be zero");
+                return Promise.all([
+                    contractInstance.totalSupply()
+                ])
+            })
+            .then(function (values) {
+                assert.equal(values[0].toFixed(0), totalSupplyInsBNK.toFixed(0), "Incorrect totalSupply");
+
+                return Promise.all([
+                    //buy tokens for user
+                    contractInstance.issueTokens(contractOwnerAddress, contributorAddresssBNKAmount.toFixed(0), {from: contractOwnerAddress})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                return contractHelper.mineNextBlock(25*60);
+            })
+            .then(function (value) {
+
+                return contractHelper.mineNewBlocks(BigNumber(blocksPerRound).plus(BigNumber(1)));// finish 10 - start 11
+            })
+            .then(function (value) {
+
+                return contractInstance.createRounds(2);
+            })
+            .then(function(tx) {
+                assert.equal(BigNumber(web3.eth.getBalance(contractAddress).toString()).toFixed(0), 0, "Contract ETH Balance is wrong");
+
+                return Promise.all([
+                    contractInstance.setReward(10, web3.toWei(1, "ether")),
+                    contractInstance.sendTransaction({value: web3.toWei(1, "ether")})
+                ])
+            })
+            .then(function(values) {
+                assert.isOk(values[0], "should be transaction");
+                assert.isOk(values[1], "should be transaction");
+
+                return Promise.all([
+                    contractInstance.claimRewardTillRound(11, {from: contractOwnerAddress}),
+                    contractInstance.accountBalances(contractOwnerAddress)
+                ])
+            })
+            .then(function(values) {
+                assert.equal(11, values[1][1], "Incorrect user claimedRewardTillRound value");
+            })
+            .catch(function(error) {
+                console.log(error);
+                assert.isOk(false, 'Unexpected exception');
+            })
+    });
 });
